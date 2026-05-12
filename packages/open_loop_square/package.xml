@@ -1,0 +1,10 @@
+<package>
+  <name>open_loop_square</name>
+  <version>0.0.1</version>
+  <description>
+    My first Catkin package in Duckietown for SIT310.
+  </description>
+  <maintainer email="s224816942@deakin.edu.au">Isumi Malinhara Liyanage</maintainer>
+  <license>None</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
