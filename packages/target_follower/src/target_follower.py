@@ -15,8 +15,8 @@ class Target_Follower:
         rospy.on_shutdown(self.clean_shutdown)
         
         ###### Init Pub/Subs. REMEMBER TO REPLACE "akandb" WITH YOUR ROBOT'S NAME #####
-        self.cmd_vel_pub = rospy.Publisher('/akandb/car_cmd_switch_node/cmd', Twist2DStamped, queue_size=1)
-        rospy.Subscriber('/akandb/apriltag_detector_node/detections', AprilTagDetectionArray, self.tag_callback, queue_size=1)
+        self.cmd_vel_pub = rospy.Publisher('/deakinbot/car_cmd_switch_node/cmd', Twist2DStamped, queue_size=1)
+        rospy.Subscriber('/deakinbot/apriltag_detector_node/detections', AprilTagDetectionArray, self.tag_callback, queue_size=1)
         ################################################################
 
         rospy.spin() # Spin forever but listen to message callbacks
@@ -39,13 +39,13 @@ class Target_Follower:
         self.cmd_vel_pub.publish(cmd_msg)
 
     def seek_object(self):
-    """Robot spins looking for AprilTags"""
-    cmd_msg = Twist2DStamped()
-    cmd_msg.header.stamp = rospy.Time.now()
-    cmd_msg.v = 0.0
-    cmd_msg.omega = 0.8  # Spin speed
-    self.cmd_vel_pub.publish(cmd_msg)
-    rospy.loginfo("Seeking...")
+        """Robot spins looking for AprilTags"""
+        cmd_msg = Twist2DStamped()
+        cmd_msg.header.stamp = rospy.Time.now()
+        cmd_msg.v = 0.0
+        cmd_msg.omega = 0.8  # Spin speed
+        self.cmd_vel_pub.publish(cmd_msg)
+        rospy.loginfo("Seeking...")
 
     def look_at_object(self, detection):
         """Track AprilTag by rotating"""
@@ -71,25 +71,25 @@ class Target_Follower:
         rospy.loginfo(f"Tracking: x={x_offset:.3f}, z={z_distance:.3f}, omega={omega:.3f}")
 
     def move_robot(self, detections):
-    """Main control logic"""
-    rospy.loginfo(f"move_robot called with {len(detections)} detections")
-    
-    if len(detections) == 0:
-        rospy.loginfo("NO detections - seeking")
-        self.seek_object()
-        return
-    
-    rospy.loginfo(f"Found {len(detections)} detections!")
-    detection = detections[0]
-    tag_id = detection.tag_id
-    rospy.loginfo(f"Tag ID: {tag_id}")
-    
-    if tag_id in [0, 1, 9, 10]:
-        rospy.loginfo(f"Tracking tag {tag_id}")
-        self.look_at_object(detection)
-    else:
-        rospy.loginfo(f"Unknown tag {tag_id} - seeking")
-        self.seek_object()
+        """Main control logic"""
+        rospy.loginfo(f"move_robot called with {len(detections)} detections")
+
+        if len(detections) == 0:
+            rospy.loginfo("NO detections - seeking")
+            self.seek_object()
+            return
+
+        rospy.loginfo(f"Found {len(detections)} detections!")
+        detection = detections[0]
+        tag_id = detection.tag_id
+        rospy.loginfo(f"Tag ID: {tag_id}")
+
+        if tag_id in [0, 1, 9, 10]:
+            rospy.loginfo(f"Tracking tag {tag_id}")
+            self.look_at_object(detection)
+        else:
+            rospy.loginfo(f"Unknown tag {tag_id} - seeking")
+            self.seek_object()
 
 if __name__ == '__main__':
     try:
