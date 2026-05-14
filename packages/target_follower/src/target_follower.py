@@ -2,35 +2,32 @@
 
 import rospy
 from duckietown_msgs.msg import Twist2DStamped
-from duckietown_msgs.msg import FSMState
 from duckietown_msgs.msg import AprilTagDetectionArray
 
 class Target_Follower:
     def __init__(self):
-        
-        #Initialize ROS node
         rospy.init_node('target_follower_node', anonymous=True)
-
-        # When shutdown signal is received, we run clean_shutdown function
         rospy.on_shutdown(self.clean_shutdown)
-        
-        ###### Init Pub/Subs. REMEMBER TO REPLACE "akandb" WITH YOUR ROBOT'S NAME #####
+
+        self.latest_detections = []  # Store latest detections
+
         self.cmd_vel_pub = rospy.Publisher('/deakinbot/car_cmd_switch_node/cmd', Twist2DStamped, queue_size=1)
         rospy.Subscriber('/deakinbot/apriltag_detector_node/detections', AprilTagDetectionArray, self.tag_callback, queue_size=1)
-        ################################################################
 
-        rospy.spin() # Spin forever but listen to message callbacks
+        # Main loop runs at 10Hz regardless of detections
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            self.move_robot(self.latest_detections)
+            rate.sleep()
 
-    # Apriltag Detection Callback
     def tag_callback(self, msg):
-        self.move_robot(msg.detections)
- 
-    # Stop Robot before node has shut down. This ensures the robot keep moving with the latest velocity command
+        # Just store the latest detections
+        self.latest_detections = msg.detections
+
     def clean_shutdown(self):
         rospy.loginfo("System shutting down. Stopping robot...")
         self.stop_robot()
 
-    # Sends zero velocity to stop the robot
     def stop_robot(self):
         cmd_msg = Twist2DStamped()
         cmd_msg.header.stamp = rospy.Time.now()
@@ -39,56 +36,40 @@ class Target_Follower:
         self.cmd_vel_pub.publish(cmd_msg)
 
     def seek_object(self):
-        """Robot spins looking for AprilTags"""
         cmd_msg = Twist2DStamped()
         cmd_msg.header.stamp = rospy.Time.now()
         cmd_msg.v = 0.0
-        cmd_msg.omega = 0.8  # Spin speed
+        cmd_msg.omega = 0.8
         self.cmd_vel_pub.publish(cmd_msg)
         rospy.loginfo("Seeking...")
 
     def look_at_object(self, detection):
-        """Track AprilTag by rotating"""
         x_offset = detection.transform.translation.x
         z_distance = detection.transform.translation.z
-        
-        error = x_offset
-        
-        # Proportional control
+
         kp = 2.5
-        omega = kp * error
-        
-        # Clamp to limits
-        max_omega = 1.2
-        omega = max(-max_omega, min(max_omega, omega))
-        
+        omega = kp * x_offset
+        omega = max(-1.2, min(1.2, omega))
+
         cmd_msg = Twist2DStamped()
         cmd_msg.header.stamp = rospy.Time.now()
         cmd_msg.v = 0.0
         cmd_msg.omega = omega
         self.cmd_vel_pub.publish(cmd_msg)
-        
+
         rospy.loginfo(f"Tracking: x={x_offset:.3f}, z={z_distance:.3f}, omega={omega:.3f}")
 
     def move_robot(self, detections):
-        """Main control logic"""
-        rospy.loginfo(f"move_robot called with {len(detections)} detections")
-
         if len(detections) == 0:
-            rospy.loginfo("NO detections - seeking")
             self.seek_object()
             return
 
-        rospy.loginfo(f"Found {len(detections)} detections!")
         detection = detections[0]
         tag_id = detection.tag_id
-        rospy.loginfo(f"Tag ID: {tag_id}")
 
         if tag_id in [0, 1, 9, 10]:
-            rospy.loginfo(f"Tracking tag {tag_id}")
             self.look_at_object(detection)
         else:
-            rospy.loginfo(f"Unknown tag {tag_id} - seeking")
             self.seek_object()
 
 if __name__ == '__main__':
