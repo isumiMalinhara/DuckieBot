@@ -38,28 +38,52 @@ class Target_Follower:
         cmd_msg.omega = 0.0
         self.cmd_vel_pub.publish(cmd_msg)
 
-    def move_robot(self, detections):
+    def seek_object(self):
+    """Robot spins looking for AprilTags"""
+    cmd_msg = Twist2DStamped()
+    cmd_msg.header.stamp = rospy.Time.now()
+    cmd_msg.v = 0.0
+    cmd_msg.omega = 0.8  # Spin speed
+    self.cmd_vel_pub.publish(cmd_msg)
+    rospy.loginfo("Seeking...")
 
-        #### YOUR CODE GOES HERE ####
-
-        if len(detections) == 0:
-            return
-
-        x = detections[0].transform.translation.x
-        y = detections[0].transform.translation.y
-        z = detections[0].transform.translation.z
-
-        rospy.loginfo("x,y,z: %f %f %f", x, y, z)
-
-
-        # Publish a velocity
+    def look_at_object(self, detection):
+        """Track AprilTag by rotating"""
+        x_offset = detection.transform.translation.x
+        z_distance = detection.transform.translation.z
+        
+        error = x_offset
+        
+        # Proportional control
+        kp = 2.5
+        omega = kp * error
+        
+        # Clamp to limits
+        max_omega = 1.2
+        omega = max(-max_omega, min(max_omega, omega))
+        
         cmd_msg = Twist2DStamped()
         cmd_msg.header.stamp = rospy.Time.now()
         cmd_msg.v = 0.0
-        cmd_msg.omega = 0.0
+        cmd_msg.omega = omega
         self.cmd_vel_pub.publish(cmd_msg)
+        
+        rospy.loginfo(f"Tracking: x={x_offset:.3f}, z={z_distance:.3f}, omega={omega:.3f}")
 
-        #############################
+    def move_robot(self, detections):
+        """Main control logic"""
+        if len(detections) == 0:
+            self.seek_object()
+            return
+        
+        detection = detections[0]
+        tag_id = detection.tag_id
+        
+        # Filter for signs (1=Stop, 9=Right, 10=Left, 0=any)
+        if tag_id in [0, 1, 9, 10]:
+            self.look_at_object(detection)
+        else:
+            self.seek_object()
 
 if __name__ == '__main__':
     try:
