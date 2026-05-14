@@ -71,19 +71,25 @@ class Target_Follower:
         rospy.loginfo(f"Tracking: x={x_offset:.3f}, z={z_distance:.3f}, omega={omega:.3f}")
 
     def move_robot(self, detections):
-        """Main control logic"""
-        if len(detections) == 0:
-            self.seek_object()
-            return
-        
-        detection = detections[0]
-        tag_id = detection.tag_id
-        
-        # Filter for signs (1=Stop, 9=Right, 10=Left, 0=any)
-        if tag_id in [0, 1, 9, 10]:
-            self.look_at_object(detection)
-        else:
-            self.seek_object()
+    """Main control logic"""
+    rospy.loginfo(f"move_robot called with {len(detections)} detections")
+    
+    if len(detections) == 0:
+        rospy.loginfo("NO detections - seeking")
+        self.seek_object()
+        return
+    
+    rospy.loginfo(f"Found {len(detections)} detections!")
+    detection = detections[0]
+    tag_id = detection.tag_id
+    rospy.loginfo(f"Tag ID: {tag_id}")
+    
+    if tag_id in [0, 1, 9, 10]:
+        rospy.loginfo(f"Tracking tag {tag_id}")
+        self.look_at_object(detection)
+    else:
+        rospy.loginfo(f"Unknown tag {tag_id} - seeking")
+        self.seek_object()
 
 if __name__ == '__main__':
     try:
