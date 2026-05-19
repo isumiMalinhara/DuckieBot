@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="closed_loop_square" type="closed_loop_square.py" name="closed_loop_square_node" output="screen"/>
+</launch>
