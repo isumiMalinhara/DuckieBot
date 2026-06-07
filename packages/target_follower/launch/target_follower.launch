@@ -1,6 +1,14 @@
 <launch>
     <!-- vehicle name so it can work with any robot -->
-    <group ns="$(env VEHICLE_NAME)">
-        <node pkg="target_follower" name="target_follower" type="target_follower.py" output="screen"/>
+    <arg name="veh" default="$(env VEHICLE_NAME)"/>
+
+    <group ns="$(arg veh)">
+        <!-- Bridge: decompress camera images for the AprilTag detector -->
+        <node pkg="target_follower" name="image_bridge_node" type="image_bridge_node.py"
+              output="screen" required="true"/>
+
+        <!-- Target follower: reacts to AprilTag detections -->
+        <node pkg="target_follower" name="target_follower_node" type="target_follower.py"
+              output="screen" required="true"/>
     </group>
 </launch>

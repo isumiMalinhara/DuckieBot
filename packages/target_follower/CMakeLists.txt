@@ -13,5 +13,6 @@ catkin_package()
 # Mark scripts as executable
 catkin_install_python(PROGRAMS
   src/target_follower.py
+  src/image_bridge_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
